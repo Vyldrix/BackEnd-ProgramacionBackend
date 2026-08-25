@@ -31,7 +31,6 @@ const servidor = createServer((solicitud, respuesta) => {
         );
         return;
     }
-
     // Endpoint 3: /Adios
     if (solicitud.method === "GET" && solicitud.url === "/Adios") {
         respuesta.writeHead(200);
@@ -39,6 +38,17 @@ const servidor = createServer((solicitud, respuesta) => {
             JSON.stringify({
                 estado: "ok",
                 mensaje: "Adios Lautaro"
+            })
+        );
+        return;
+    }
+    // Endpoint 4: POST /NarcisoPerez
+    if (solicitud.method === "POST" && solicitud.url === "/NarcisoPerez") {
+        respuesta.writeHead(201);
+        respuesta.end(
+            JSON.stringify({
+                estado: "ok",
+                mensaje: "Narciso Perez Creado con exito"
             })
         );
         return;
@@ -53,6 +63,10 @@ const servidor = createServer((solicitud, respuesta) => {
     );
 });
 
-servidor.listen(puerto, () => {
-    console.log(`Servidor disponible en http://localhost:${puerto}`);
-});
+if (process.env.NODE_ENV !== "test") {
+    servidor.listen(puerto, () => {
+        console.log(`Servidor disponible en http://localhost:${puerto}`);
+    });
+}
+
+export { servidor };
