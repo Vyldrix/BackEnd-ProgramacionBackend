@@ -29,9 +29,15 @@ El objetivo de la actividad consistió en la creación, prueba y verificación d
    - Una vez validados todos los tests automatizados, se levantó el servidor en local y se probaron individualmente cada una de las peticiones mediante el cliente HTTP **Bruno**, utilizando la colección ubicada en el directorio `EjerciciosBackend/`.
    - Se comprobó en tiempo real la respuesta de cabeceras, códigos de estado y contenido JSON para cada ruta.
 
+<img width="1114" height="306" alt="get hola" src="https://github.com/user-attachments/assets/8eea5485-844c-49fe-8237-d31ab7aae436" />
+<img width="1115" height="310" alt="get adios" src="https://github.com/user-attachments/assets/be58e66d-262d-40f5-b819-06b619ad3b84" />
+<img width="1114" height="318" alt="post goutsiso" src="https://github.com/user-attachments/assets/70ceac7b-4e84-4651-84a2-6bc7fcb0cb45" />
+
 5. **Fase 5: Inspección de tráfico y verificación en Wireshark**
    - Se realizó una captura de paquetes sobre la interfaz loopback (`localhost` / `127.0.0.1` en el puerto `3000`) utilizando **Wireshark**.
    - Se inspeccionó el flujo de red a bajo nivel para cada acción y método (`GET`, `POST`), verificando la correcta transmisión del protocolo HTTP, las cabeceras (`Content-Type: application/json; charset=utf-8`), los payloads JSON y los códigos de estado (`200 OK`, `201 Created`, `404 Not Found`).
+
+<img width="970" height="200" alt="writeshark" src="https://github.com/user-attachments/assets/40c51dcb-1c2a-4983-9523-41486b2bfb5d" />
 
 ---
 
