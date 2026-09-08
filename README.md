@@ -235,7 +235,7 @@ La suite de pruebas contiene **68 tests** automatizados con cobertura completa:
 
 <!-- Adjunta aquí la captura de la terminal corriendo npm test -->
 
-_(Adjuntar captura aquí)_
+<img width="700" height="264" alt="npmtests" src="https://github.com/user-attachments/assets/176d9baf-c6e6-4a1f-b9df-ad253f3d0b29" />
 
 ---
 
@@ -243,6 +243,6 @@ _(Adjuntar captura aquí)_
 
 <!-- Adjunta aquí la captura de la terminal corriendo npm run test:gherkin -->
 
-_(Adjuntar captura aquí)_
+<img width="701" height="400" alt="writeshar" src="https://github.com/user-attachments/assets/de32c056-4f08-4c07-baaa-7600c1af14ee" />
 
 ---
