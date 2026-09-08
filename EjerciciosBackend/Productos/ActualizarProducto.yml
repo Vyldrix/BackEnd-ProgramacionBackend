@@ -1,0 +1,26 @@
+info:
+  name: Actualizar Producto
+  type: http
+  seq: 4
+
+http:
+  method: PUT
+  url: http://localhost:3000/api/productos/1
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |
+      {
+        "precio": 299.99,
+        "stock": 15
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

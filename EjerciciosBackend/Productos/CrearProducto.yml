@@ -1,0 +1,28 @@
+info:
+  name: Crear Producto
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:3000/api/productos
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |
+      {
+        "nombre": "Monitor Gamer 27\"",
+        "descripcion": "Panel IPS 165Hz 1ms HDR",
+        "precio": 320.50,
+        "stock": 10
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false

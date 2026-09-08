@@ -1,3 +1,8 @@
+> **Programación Backend**  
+> Esta actividad es la creación de un backend completo para la materia de Programación Backend.
+
+---
+
 # Ejercicio N°1 - Programación Backend
 
 Proyecto desarrollado en **Node.js** con **TypeScript**, aplicando la metodología **TDD (Test-Driven Development)** para el diseño e implementación de una API HTTP nativa.
@@ -52,45 +57,192 @@ El objetivo de la actividad consistió en la creación, prueba y verificación d
 
 ---
 
-## 🚀 Instalación y Uso
+# 📌 Ejercicio N°2 - Reestructuración por Capas, SQLite, CRUD, Mocks y Gherkin
 
-### 1. Instalar dependencias
-```bash
-npm install
-```
-
-### 2. Ejecutar los tests (Vitest)
-Para ejecutar la suite de pruebas una sola vez:
-```bash
-npm test
-```
-
-Para ejecutar en modo observador (watch):
-```bash
-npm run test:watch
-```
-
-### 3. Iniciar el servidor en desarrollo
-```bash
-npm run dev
-```
-El servidor quedará disponible en `http://localhost:3000`.
+En esta segunda etapa, se evolucionó la aplicación implementando una **Arquitectura por Capas** estricta según el Punto 7, incorporando dos nuevas entidades de dominio, base de datos persistente en **SQLite**, pruebas unitarias con datos **Mock** y pruebas **BDD con Gherkin**.
 
 ---
 
-## 📁 Estructura del Proyecto
+## 🏛️ 1. Arquitectura por Capas (Punto 7)
+
+El backend divide sus responsabilidades en componentes desacoplados:
+
+| Componente     | Responsabilidad                                                                       | Ubicación en el Código |
+| :------------- | :------------------------------------------------------------------------------------ | :--------------------- |
+| **Router**     | Relacionar métodos y rutas HTTP con sus controladores correspondientes.               | `src/routes/`          |
+| **Controller** | Traducir peticiones HTTP a llamadas de aplicación y construir respuestas tipadas.     | `src/controllers/`     |
+| **Service**    | Aplicar reglas de negocio, validaciones y coordinar operaciones.                      | `src/services/`        |
+| **Repository** | Abstraer el acceso a la fuente de datos (consultas SQLite e interfaces desacopladas). | `src/repositories/`    |
+| **Entity**     | Representar los conceptos centrales del dominio de la aplicación.                     | `src/entities/`        |
+| **DTO**        | Definir las estructuras y contratos de datos de entrada y salida.                     | `src/dtos/`            |
+| **Middleware** | Ejecutar comportamientos transversales (manejo centralizado de errores, logs, 404).   | `src/middlewares/`     |
+
+---
+
+## 📦 2. Nuevas Entidades del Dominio y Endpoints CRUD
+
+Se incorporaron dos entidades completas con soporte de operaciones CRUD y búsqueda por ID:
+
+### A. Entidad `Usuario` (`src/entities/usuario.entity.ts`)
+
+- **Campos**: `id` (autoincremental), `nombre`, `email` (único), `edad`, `creadoEn`.
+- **Endpoints**:
+  - `POST /api/usuarios`: Crear usuario (valida formato y unicidad de email).
+  - `GET /api/usuarios`: Listar todos los usuarios.
+  - `GET /api/usuarios/:id`: **Búsqueda por ID**.
+  - `PUT /api/usuarios/:id`: Actualizar datos de un usuario.
+  - `DELETE /api/usuarios/:id`: Eliminar usuario.
+
+### B. Entidad `Producto` (`src/entities/producto.entity.ts`)
+
+- **Campos**: `id` (autoincremental), `nombre`, `descripcion`, `precio` (>= 0), `stock` (>= 0), `creadoEn`.
+- **Endpoints**:
+  - `POST /api/productos`: Crear producto en catálogo.
+  - `GET /api/productos`: Listar productos disponibles.
+  - `GET /api/productos/:id`: **Búsqueda por ID**.
+  - `PUT /api/productos/:id`: Actualizar precio, stock o datos del producto.
+  - `DELETE /api/productos/:id`: Eliminar producto.
+
+---
+
+## 🗄️ 3. Motor de Base de Datos (SQLite)
+
+- Persistencia gestionada mediante el motor nativo **SQLite** de Node.js (`node:sqlite` con `DatabaseSync`).
+- Inicialización automática de esquemas en `src/config/database.ts` al arrancar el servidor.
+- Configurado en archivo local `.env` (`DATABASE_PATH=database.sqlite`).
+
+---
+
+## 🧪 4. Pruebas Automatizadas y BDD con Gherkin
+
+La suite de pruebas contiene **68 tests** automatizados con cobertura completa:
+
+1. **Pruebas Unitarias con Mocks (`tests/unit/`)**:
+   - `usuario.service.test.ts`: Pruebas de lógica de negocio usando `UsuarioMockRepository`.
+   - `producto.service.test.ts`: Pruebas de validaciones usando `ProductoMockRepository`.
+2. **Pruebas de Integración con SQLite (`tests/integration/`)**:
+   - `usuario.api.test.ts`: Validación de endpoints HTTP reales contra SQLite.
+   - `producto.api.test.ts`: Validación de endpoints HTTP reales contra SQLite.
+   - `testendpoints.test.ts`: Mantenimiento de compatibilidad con las rutas del Ejercicio N°1.
+3. **Pruebas BDD con Gherkin (`tests/features/`)**:
+   - `usuario_crud.feature`: Especificaciones en sintaxis Gherkin en español (_Dado_, _Cuando_, _Entonces_, _Y_).
+   - `producto_crud.feature`: Escenarios BDD para el catálogo de productos.
+   - `gherkin.test.ts`: Ejecutor automatizado de los pasos BDD.
+
+---
+
+## 📊 Comandos de Ejecución y Testing
+
+| Comando                    | Descripción                                                      |
+| :------------------------- | :--------------------------------------------------------------- |
+| `npm test`                 | Ejecuta la **suite completa** de pruebas (68 tests).             |
+| `npm run test:gherkin`     | Ejecuta únicamente las pruebas **BDD con Gherkin**.              |
+| `npm run test:unit`        | Ejecuta las pruebas unitarias con repositorios **Mock**.         |
+| `npm run test:integration` | Ejecuta las pruebas de integración con base de datos **SQLite**. |
+| `npm run test:watch`       | Ejecuta las pruebas en modo observador en tiempo real.           |
+| `npm run dev`              | Inicia el servidor en modo desarrollo (`http://localhost:3000`). |
+
+---
+
+## 📁 Estructura del Proyecto (Ejercicio N°2)
 
 ```text
 .
-├── EjerciciosBackend/         # Colección de peticiones para Bruno
-│   ├── Adios.yml
+├── EjerciciosBackend/                 # Colección de peticiones para Bruno
+│   ├── opencollection.yml
+│   ├── Salud.yml
 │   ├── Hola.yml
+│   ├── Adios.yml
 │   ├── NarcisoPerez.yml
-│   └── opencollection.yml
-├── tests/                     # Suite de pruebas automatizadas
-│   └── testendpoints.test.ts  # Tests de endpoints con Vitest y Supertest
-├── package.json               # Scripts y dependencias del proyecto
-├── server.ts                  # Servidor HTTP y lógica de endpoints
-├── tsconfig.json              # Configuración del compilador TypeScript
-└── README.md                  # Documentación de la actividad
+│   ├── Usuarios/                      # Peticiones Bruno para Usuarios
+│   │   ├── CrearUsuario.yml
+│   │   ├── ObtenerUsuarios.yml
+│   │   ├── ObtenerUsuarioPorId.yml
+│   │   ├── ActualizarUsuario.yml
+│   │   └── EliminarUsuario.yml
+│   └── Productos/                     # Peticiones Bruno para Productos
+│       ├── CrearProducto.yml
+│       ├── ObtenerProductos.yml
+│       ├── ObtenerProductoPorId.yml
+│       ├── ActualizarProducto.yml
+│       └── EliminarProducto.yml
+├── src/
+│   ├── app.ts                         # Configuración central de Express y ensamble de capas
+│   ├── config/
+│   │   └── database.ts                # Conexión y creación de tablas en SQLite
+│   ├── controllers/                   # Controladores HTTP
+│   │   ├── legacy.controller.ts
+│   │   ├── producto.controller.ts
+│   │   └── usuario.controller.ts
+│   ├── dtos/                          # Objetos de Transferencia de Datos
+│   │   ├── producto.dto.ts
+│   │   └── usuario.dto.ts
+│   ├── entities/                      # Entidades del Dominio
+│   │   ├── producto.entity.ts
+│   │   └── usuario.entity.ts
+│   ├── middlewares/                   # Comportamientos transversales
+│   │   ├── error.middleware.ts        # Manejo global y centralizado de errores
+│   │   ├── logger.middleware.ts       # Registro de peticiones
+│   │   └── notfound.middleware.ts     # Manejador 404
+│   ├── repositories/                  # Capa de acceso a datos
+│   │   ├── interfaces/
+│   │   │   ├── producto.repository.interface.ts
+│   │   │   └── usuario.repository.interface.ts
+│   │   ├── mock/                      # Repositorios Mock para tests unitarios
+│   │   │   ├── producto.mock.repository.ts
+│   │   │   └── usuario.mock.repository.ts
+│   │   └── sqlite/                    # Implementación de persistencia en SQLite
+│   │       ├── producto.sqlite.repository.ts
+│   │       └── usuario.sqlite.repository.ts
+│   ├── routes/                        # Enrutadores HTTP
+│   │   ├── index.ts
+│   │   ├── legacy.router.ts
+│   │   ├── producto.router.ts
+│   │   └── usuario.router.ts
+│   └── services/                      # Lógica de negocio
+│       ├── errors/                    # Errores de dominio (NotFound, BadRequest, Conflict)
+│       │   └── app.errors.ts
+│       ├── producto.service.ts
+│       └── usuario.service.ts
+├── tests/
+│   ├── features/                      # Especificaciones BDD Gherkin (.feature y runner)
+│   │   ├── gherkin.test.ts
+│   │   ├── producto_crud.feature
+│   │   └── usuario_crud.feature
+│   ├── integration/                   # Tests de integración contra SQLite
+│   │   ├── producto.api.test.ts
+│   │   └── usuario.api.test.ts
+│   ├── unit/                          # Tests unitarios con datos Mock
+│   │   ├── producto.service.test.ts
+│   │   └── usuario.service.test.ts
+│   └── testendpoints.test.ts          # Tests de rutas de la Actividad 1
+├── .env.example                       # Plantilla de variables de entorno
+├── .gitignore                         # Exclusiones de Git (SQLite, node_modules, .env, logs)
+├── package.json                       # Scripts y dependencias
+├── server.ts                          # Punto de entrada y arranque del servidor HTTP
+├── tsconfig.json                      # Configuración de compilación TypeScript
+├── vitest.config.ts                   # Configuración del ejecutor de pruebas Vitest
+└── README.md                          # Documentación del proyecto
 ```
+
+---
+
+## 📸 Capturas de Pruebas (Ejercicio N°2)
+
+> Espacio reservado para adjuntar las capturas de pantalla de la ejecución de pruebas y verificación en clientes HTTP para el Ejercicio N°2.
+
+### 1. Ejecución de la Suite Completa de Pruebas (`npm test`)
+
+<!-- Adjunta aquí la captura de la terminal corriendo npm test -->
+
+_(Adjuntar captura aquí)_
+
+---
+
+### 2. Ejecución de Pruebas BDD con Gherkin (`npm run test:gherkin`)
+
+<!-- Adjunta aquí la captura de la terminal corriendo npm run test:gherkin -->
+
+_(Adjuntar captura aquí)_
+
+---

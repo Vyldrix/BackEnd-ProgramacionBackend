@@ -1,11 +1,11 @@
 info:
-  name: NarcisoPerez
+  name: Obtener Producto Por Id
   type: http
   seq: 3
 
 http:
-  method: POST
-  url: http://localhost:3000/NarcisoPerez
+  method: GET
+  url: http://localhost:3000/api/productos/1
   auth: inherit
 
 settings:

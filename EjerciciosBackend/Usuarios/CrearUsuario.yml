@@ -1,0 +1,27 @@
+info:
+  name: Crear Usuario
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: http://localhost:3000/api/usuarios
+  headers:
+    - name: Content-Type
+      value: application/json
+  body:
+    type: json
+    data: |
+      {
+        "nombre": "Lautaro Dev",
+        "email": "lautaro.dev@example.com",
+        "edad": 22
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
