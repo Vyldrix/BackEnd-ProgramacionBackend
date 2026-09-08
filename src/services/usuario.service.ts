@@ -14,10 +14,10 @@ import {
 export class UsuarioService {
   constructor(private readonly usuarioRepo: IUsuarioRepository) {}
 
-  public crearUsuario(dto: CrearUsuarioDTO): UsuarioResponseDTO {
+  public async crearUsuario(dto: CrearUsuarioDTO): Promise<UsuarioResponseDTO> {
     this.validarDatosUsuario(dto);
 
-    const emailExistente = this.usuarioRepo.obtenerPorEmail(dto.email);
+    const emailExistente = await this.usuarioRepo.obtenerPorEmail(dto.email);
     if (emailExistente) {
       throw new ConflictError(`El email '${dto.email}' ya se encuentra registrado`);
     }
@@ -28,21 +28,21 @@ export class UsuarioService {
       edad: dto.edad
     });
 
-    const creado = this.usuarioRepo.crear(nuevoUsuario);
+    const creado = await this.usuarioRepo.crear(nuevoUsuario);
     return this.mapToResponse(creado);
   }
 
-  public obtenerTodos(): UsuarioResponseDTO[] {
-    const usuarios = this.usuarioRepo.obtenerTodos();
+  public async obtenerTodos(): Promise<UsuarioResponseDTO[]> {
+    const usuarios = await this.usuarioRepo.obtenerTodos();
     return usuarios.map((u) => this.mapToResponse(u));
   }
 
-  public obtenerPorId(id: number): UsuarioResponseDTO {
+  public async obtenerPorId(id: number): Promise<UsuarioResponseDTO> {
     if (isNaN(id) || id <= 0) {
       throw new BadRequestError("El ID de usuario debe ser un número entero positivo válido");
     }
 
-    const usuario = this.usuarioRepo.obtenerPorId(id);
+    const usuario = await this.usuarioRepo.obtenerPorId(id);
     if (!usuario) {
       throw new NotFoundError(`Usuario con ID ${id} no encontrado`);
     }
@@ -50,15 +50,15 @@ export class UsuarioService {
     return this.mapToResponse(usuario);
   }
 
-  public actualizarUsuario(
+  public async actualizarUsuario(
     id: number,
     dto: ActualizarUsuarioDTO
-  ): UsuarioResponseDTO {
+  ): Promise<UsuarioResponseDTO> {
     if (isNaN(id) || id <= 0) {
       throw new BadRequestError("El ID de usuario debe ser un número entero positivo válido");
     }
 
-    const existente = this.usuarioRepo.obtenerPorId(id);
+    const existente = await this.usuarioRepo.obtenerPorId(id);
     if (!existente) {
       throw new NotFoundError(`Usuario con ID ${id} no encontrado`);
     }
@@ -75,13 +75,13 @@ export class UsuarioService {
       const emailFormateado = dto.email.trim().toLowerCase();
       this.validarEmail(emailFormateado);
 
-      const otroConMismoEmail = this.usuarioRepo.obtenerPorEmail(emailFormateado);
+      const otroConMismoEmail = await this.usuarioRepo.obtenerPorEmail(emailFormateado);
       if (otroConMismoEmail && otroConMismoEmail.id !== id) {
         throw new ConflictError(`El email '${dto.email}' ya pertenece a otro usuario`);
       }
     }
 
-    const actualizado = this.usuarioRepo.actualizar(id, {
+    const actualizado = await this.usuarioRepo.actualizar(id, {
       nombre: dto.nombre !== undefined ? dto.nombre.trim() : undefined,
       email: dto.email !== undefined ? dto.email.trim().toLowerCase() : undefined,
       edad: dto.edad
@@ -94,17 +94,17 @@ export class UsuarioService {
     return this.mapToResponse(actualizado);
   }
 
-  public eliminarUsuario(id: number): boolean {
+  public async eliminarUsuario(id: number): Promise<boolean> {
     if (isNaN(id) || id <= 0) {
       throw new BadRequestError("El ID de usuario debe ser un número entero positivo válido");
     }
 
-    const existente = this.usuarioRepo.obtenerPorId(id);
+    const existente = await this.usuarioRepo.obtenerPorId(id);
     if (!existente) {
       throw new NotFoundError(`Usuario con ID ${id} no encontrado`);
     }
 
-    return this.usuarioRepo.eliminar(id);
+    return await this.usuarioRepo.eliminar(id);
   }
 
   private validarDatosUsuario(dto: CrearUsuarioDTO): void {

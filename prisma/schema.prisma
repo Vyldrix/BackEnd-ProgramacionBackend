@@ -1,0 +1,71 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id       Int      @id @default(autoincrement())
+  nombre   String
+  email    String   @unique
+  edad     Int
+  creadoEn DateTime @default(now()) @map("creado_en")
+
+  // Relación 1:N -> Un usuario puede tener muchos pedidos
+  pedidos  Pedido[]
+
+  @@map("usuarios")
+}
+
+model Producto {
+  id          Int             @id @default(autoincrement())
+  nombre      String
+  descripcion String
+  precio      Float
+  stock       Int
+  creadoEn    DateTime        @default(now()) @map("creado_en")
+
+  // Relación 1:N -> Un producto puede estar presente en muchos detalles de pedido
+  detalles    DetallePedido[]
+
+  @@map("productos")
+}
+
+model Pedido {
+  id        Int             @id @default(autoincrement())
+  usuarioId Int             @map("usuario_id")
+  total     Float           @default(0)
+  estado    String          @default("PENDIENTE")
+  creadoEn  DateTime        @default(now()) @map("creado_en")
+
+  // Relación N:1 -> Cada pedido pertenece a un usuario
+  usuario   Usuario         @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  // Relación 1:N -> Un pedido contiene múltiples ítems o detalles
+  detalles  DetallePedido[]
+
+  @@map("pedidos")
+}
+
+model DetallePedido {
+  id             Int      @id @default(autoincrement())
+  pedidoId       Int      @map("pedido_id")
+  productoId     Int      @map("producto_id")
+  cantidad       Int
+  precioUnitario Float    @map("precio_unitario")
+  subtotal       Float
+
+  // Relación N:1 -> Cada detalle pertenece a un pedido
+  pedido         Pedido   @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+
+  // Relación N:1 -> Cada detalle hace referencia a un producto
+  producto       Producto @relation(fields: [productoId], references: [id], onDelete: Restrict)
+
+  @@map("detalles_pedidos")
+}

@@ -6,7 +6,7 @@ export class UsuarioController {
 
   public crear = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const nuevoUsuario = this.usuarioService.crearUsuario(req.body);
+      const nuevoUsuario = await this.usuarioService.crearUsuario(req.body);
       res.status(201).json({
         estado: "ok",
         mensaje: "Usuario creado exitosamente",
@@ -19,7 +19,7 @@ export class UsuarioController {
 
   public obtenerTodos = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const usuarios = this.usuarioService.obtenerTodos();
+      const usuarios = await this.usuarioService.obtenerTodos();
       res.status(200).json({
         estado: "ok",
         total: usuarios.length,
@@ -33,7 +33,7 @@ export class UsuarioController {
   public obtenerPorId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = Number(req.params.id);
-      const usuario = this.usuarioService.obtenerPorId(id);
+      const usuario = await this.usuarioService.obtenerPorId(id);
       res.status(200).json({
         estado: "ok",
         datos: usuario
@@ -46,7 +46,7 @@ export class UsuarioController {
   public actualizar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = Number(req.params.id);
-      const usuarioActualizado = this.usuarioService.actualizarUsuario(id, req.body);
+      const usuarioActualizado = await this.usuarioService.actualizarUsuario(id, req.body);
       res.status(200).json({
         estado: "ok",
         mensaje: "Usuario actualizado exitosamente",
@@ -60,7 +60,7 @@ export class UsuarioController {
   public eliminar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = Number(req.params.id);
-      this.usuarioService.eliminarUsuario(id);
+      await this.usuarioService.eliminarUsuario(id);
       res.status(200).json({
         estado: "ok",
         mensaje: "Usuario eliminado exitosamente"

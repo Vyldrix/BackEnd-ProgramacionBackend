@@ -12,7 +12,7 @@ export class ProductoMockRepository implements IProductoRepository {
     }
   }
 
-  public crear(producto: Producto): Producto {
+  public async crear(producto: Producto): Promise<Producto> {
     const nuevoProducto = new Producto({
       id: producto.id && producto.id > 0 ? producto.id : this.currentId++,
       nombre: producto.nombre,
@@ -25,19 +25,19 @@ export class ProductoMockRepository implements IProductoRepository {
     return nuevoProducto;
   }
 
-  public obtenerTodos(): Producto[] {
+  public async obtenerTodos(): Promise<Producto[]> {
     return [...this.productos];
   }
 
-  public obtenerPorId(id: number): Producto | null {
+  public async obtenerPorId(id: number): Promise<Producto | null> {
     const producto = this.productos.find((p) => p.id === id);
     return producto ? new Producto({ ...producto }) : null;
   }
 
-  public actualizar(
+  public async actualizar(
     id: number,
     datos: Partial<Omit<Producto, "id" | "creadoEn">>
-  ): Producto | null {
+  ): Promise<Producto | null> {
     const index = this.productos.findIndex((p) => p.id === id);
     if (index === -1) return null;
 
@@ -55,7 +55,7 @@ export class ProductoMockRepository implements IProductoRepository {
     return actualizado;
   }
 
-  public eliminar(id: number): boolean {
+  public async eliminar(id: number): Promise<boolean> {
     const index = this.productos.findIndex((p) => p.id === id);
     if (index === -1) return false;
     this.productos.splice(index, 1);

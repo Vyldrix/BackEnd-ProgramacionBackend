@@ -33,14 +33,14 @@ describe("UsuarioService (Pruebas Unitarias con Mock Repository)", () => {
   });
 
   describe("crearUsuario", () => {
-    it("debe crear un usuario exitosamente con datos válidos", () => {
+    it("debe crear un usuario exitosamente con datos válidos", async () => {
       const dto = {
         nombre: "Carlos López",
         email: "carlos.lopez@example.com",
         edad: 28
       };
 
-      const creado = service.crearUsuario(dto);
+      const creado = await service.crearUsuario(dto);
 
       expect(creado).toHaveProperty("id");
       expect(creado.id).toBeGreaterThanOrEqual(1);
@@ -50,91 +50,91 @@ describe("UsuarioService (Pruebas Unitarias con Mock Repository)", () => {
       expect(creado).toHaveProperty("creadoEn");
     });
 
-    it("debe lanzar ConflictError si el email ya existe", () => {
+    it("debe lanzar ConflictError si el email ya existe", async () => {
       const dto = {
         nombre: "Juan Duplicado",
         email: "juan.perez@example.com",
         edad: 40
       };
 
-      expect(() => service.crearUsuario(dto)).toThrow(ConflictError);
-      expect(() => service.crearUsuario(dto)).toThrow(/ya se encuentra registrado/);
+      await expect(service.crearUsuario(dto)).rejects.toThrow(ConflictError);
+      await expect(service.crearUsuario(dto)).rejects.toThrow(/ya se encuentra registrado/);
     });
 
-    it("debe lanzar BadRequestError si el nombre está vacío", () => {
+    it("debe lanzar BadRequestError si el nombre está vacío", async () => {
       const dto = {
         nombre: "   ",
         email: "nuevo@example.com",
         edad: 20
       };
 
-      expect(() => service.crearUsuario(dto)).toThrow(BadRequestError);
-      expect(() => service.crearUsuario(dto)).toThrow(/nombre/);
+      await expect(service.crearUsuario(dto)).rejects.toThrow(BadRequestError);
+      await expect(service.crearUsuario(dto)).rejects.toThrow(/nombre/);
     });
 
-    it("debe lanzar BadRequestError si el formato de email es inválido", () => {
+    it("debe lanzar BadRequestError si el formato de email es inválido", async () => {
       const dto = {
         nombre: "Ana",
         email: "email-invalido",
         edad: 22
       };
 
-      expect(() => service.crearUsuario(dto)).toThrow(BadRequestError);
-      expect(() => service.crearUsuario(dto)).toThrow(/email/);
+      await expect(service.crearUsuario(dto)).rejects.toThrow(BadRequestError);
+      await expect(service.crearUsuario(dto)).rejects.toThrow(/email/);
     });
 
-    it("debe lanzar BadRequestError si la edad es negativa", () => {
+    it("debe lanzar BadRequestError si la edad es negativa", async () => {
       const dto = {
         nombre: "Pedro",
         email: "pedro@example.com",
         edad: -5
       };
 
-      expect(() => service.crearUsuario(dto)).toThrow(BadRequestError);
-      expect(() => service.crearUsuario(dto)).toThrow(/edad/);
+      await expect(service.crearUsuario(dto)).rejects.toThrow(BadRequestError);
+      await expect(service.crearUsuario(dto)).rejects.toThrow(/edad/);
     });
   });
 
   describe("obtenerTodos", () => {
-    it("debe retornar la lista completa de usuarios", () => {
-      const lista = service.obtenerTodos();
+    it("debe retornar la lista completa de usuarios", async () => {
+      const lista = await service.obtenerTodos();
 
       expect(lista).toHaveLength(2);
       expect(lista[0].nombre).toBe("Juan Pérez");
       expect(lista[1].nombre).toBe("María Gómez");
     });
 
-    it("debe retornar una lista vacía si no hay usuarios", () => {
+    it("debe retornar una lista vacía si no hay usuarios", async () => {
       mockRepo.reset();
-      const lista = service.obtenerTodos();
+      const lista = await service.obtenerTodos();
 
       expect(lista).toEqual([]);
     });
   });
 
   describe("obtenerPorId", () => {
-    it("debe retornar el usuario correspondiente al ID indicado", () => {
-      const usuario = service.obtenerPorId(1);
+    it("debe retornar el usuario correspondiente al ID indicado", async () => {
+      const usuario = await service.obtenerPorId(1);
 
       expect(usuario).toBeDefined();
       expect(usuario.id).toBe(1);
       expect(usuario.nombre).toBe("Juan Pérez");
     });
 
-    it("debe lanzar NotFoundError si el ID no existe", () => {
-      expect(() => service.obtenerPorId(999)).toThrow(NotFoundError);
-      expect(() => service.obtenerPorId(999)).toThrow(/no encontrado/);
+    it("debe lanzar NotFoundError si el ID no existe", async () => {
+      await expect(service.obtenerPorId(999)).rejects.toThrow(NotFoundError);
+      await expect(service.obtenerPorId(999)).rejects.toThrow(/no encontrado/);
     });
 
-    it("debe lanzar BadRequestError si el ID no es un número válido", () => {
-      expect(() => service.obtenerPorId(-1)).toThrow(BadRequestError);
-      expect(() => service.obtenerPorId(NaN)).toThrow(BadRequestError);
+    it("debe lanzar BadRequestError si el ID no es un número válido", async () => {
+      await expect(service.obtenerPorId(-1)).rejects.toThrow(BadRequestError);
+      await expect(service.obtenerPorId(NaN)).rejects.toThrow(BadRequestError);
     });
   });
 
   describe("actualizarUsuario", () => {
-    it("debe actualizar los campos provistos exitosamente", () => {
-      const actual = service.actualizarUsuario(1, {
+    it("debe actualizar los campos provistos exitosamente", async () => {
+      const actual = await service.actualizarUsuario(1, {
         nombre: "Juan Carlos Pérez",
         edad: 31
       });
@@ -144,40 +144,41 @@ describe("UsuarioService (Pruebas Unitarias con Mock Repository)", () => {
       expect(actual.email).toBe("juan.perez@example.com");
     });
 
-    it("debe lanzar NotFoundError si el usuario a actualizar no existe", () => {
-      expect(() =>
+    it("debe lanzar NotFoundError si el usuario a actualizar no existe", async () => {
+      await expect(
         service.actualizarUsuario(999, { nombre: "Inexistente" })
-      ).toThrow(NotFoundError);
+      ).rejects.toThrow(NotFoundError);
     });
 
-    it("debe lanzar ConflictError si se intenta usar un email de otro usuario", () => {
-      expect(() =>
+    it("debe lanzar ConflictError si se intenta usar un email de otro usuario", async () => {
+      await expect(
         service.actualizarUsuario(1, { email: "maria.gomez@example.com" })
-      ).toThrow(ConflictError);
+      ).rejects.toThrow(ConflictError);
     });
 
-    it("debe lanzar BadRequestError si el nombre actualizado está vacío", () => {
-      expect(() =>
+    it("debe lanzar BadRequestError si el nombre actualizado está vacío", async () => {
+      await expect(
         service.actualizarUsuario(1, { nombre: "  " })
-      ).toThrow(BadRequestError);
+      ).rejects.toThrow(BadRequestError);
     });
   });
 
   describe("eliminarUsuario", () => {
-    it("debe eliminar el usuario correctamente si existe", () => {
-      const resultado = service.eliminarUsuario(1);
+    it("debe eliminar el usuario correctamente si existe", async () => {
+      const resultado = await service.eliminarUsuario(1);
 
       expect(resultado).toBe(true);
-      expect(() => service.obtenerPorId(1)).toThrow(NotFoundError);
-      expect(service.obtenerTodos()).toHaveLength(1);
+      await expect(service.obtenerPorId(1)).rejects.toThrow(NotFoundError);
+      const todos = await service.obtenerTodos();
+      expect(todos).toHaveLength(1);
     });
 
-    it("debe lanzar NotFoundError si el usuario a eliminar no existe", () => {
-      expect(() => service.eliminarUsuario(999)).toThrow(NotFoundError);
+    it("debe lanzar NotFoundError si el usuario a eliminar no existe", async () => {
+      await expect(service.eliminarUsuario(999)).rejects.toThrow(NotFoundError);
     });
 
-    it("debe lanzar BadRequestError si el ID es inválido", () => {
-      expect(() => service.eliminarUsuario(0)).toThrow(BadRequestError);
+    it("debe lanzar BadRequestError si el ID es inválido", async () => {
+      await expect(service.eliminarUsuario(0)).rejects.toThrow(BadRequestError);
     });
   });
 });

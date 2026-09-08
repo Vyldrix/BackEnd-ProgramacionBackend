@@ -6,7 +6,7 @@ export class ProductoController {
 
   public crear = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const nuevoProducto = this.productoService.crearProducto(req.body);
+      const nuevoProducto = await this.productoService.crearProducto(req.body);
       res.status(201).json({
         estado: "ok",
         mensaje: "Producto creado exitosamente",
@@ -19,7 +19,7 @@ export class ProductoController {
 
   public obtenerTodos = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const productos = this.productoService.obtenerTodos();
+      const productos = await this.productoService.obtenerTodos();
       res.status(200).json({
         estado: "ok",
         total: productos.length,
@@ -33,7 +33,7 @@ export class ProductoController {
   public obtenerPorId = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = Number(req.params.id);
-      const producto = this.productoService.obtenerPorId(id);
+      const producto = await this.productoService.obtenerPorId(id);
       res.status(200).json({
         estado: "ok",
         datos: producto
@@ -46,7 +46,7 @@ export class ProductoController {
   public actualizar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = Number(req.params.id);
-      const productoActualizado = this.productoService.actualizarProducto(id, req.body);
+      const productoActualizado = await this.productoService.actualizarProducto(id, req.body);
       res.status(200).json({
         estado: "ok",
         mensaje: "Producto actualizado exitosamente",
@@ -60,7 +60,7 @@ export class ProductoController {
   public eliminar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const id = Number(req.params.id);
-      this.productoService.eliminarProducto(id);
+      await this.productoService.eliminarProducto(id);
       res.status(200).json({
         estado: "ok",
         mensaje: "Producto eliminado exitosamente"

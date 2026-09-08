@@ -34,7 +34,7 @@ describe("ProductoService (Pruebas Unitarias con Mock Repository)", () => {
   });
 
   describe("crearProducto", () => {
-    it("debe crear un producto exitosamente con datos válidos", () => {
+    it("debe crear un producto exitosamente con datos válidos", async () => {
       const dto = {
         nombre: "Teclado Mecánico",
         descripcion: "Switch Blue RGB",
@@ -42,7 +42,7 @@ describe("ProductoService (Pruebas Unitarias con Mock Repository)", () => {
         stock: 15
       };
 
-      const creado = service.crearProducto(dto);
+      const creado = await service.crearProducto(dto);
 
       expect(creado).toHaveProperty("id");
       expect(creado.id).toBeGreaterThanOrEqual(1);
@@ -53,7 +53,7 @@ describe("ProductoService (Pruebas Unitarias con Mock Repository)", () => {
       expect(creado).toHaveProperty("creadoEn");
     });
 
-    it("debe lanzar BadRequestError si el nombre está vacío", () => {
+    it("debe lanzar BadRequestError si el nombre está vacío", async () => {
       const dto = {
         nombre: "",
         descripcion: "Descripción",
@@ -61,11 +61,11 @@ describe("ProductoService (Pruebas Unitarias con Mock Repository)", () => {
         stock: 5
       };
 
-      expect(() => service.crearProducto(dto)).toThrow(BadRequestError);
-      expect(() => service.crearProducto(dto)).toThrow(/nombre/);
+      await expect(service.crearProducto(dto)).rejects.toThrow(BadRequestError);
+      await expect(service.crearProducto(dto)).rejects.toThrow(/nombre/);
     });
 
-    it("debe lanzar BadRequestError si la descripción está vacía", () => {
+    it("debe lanzar BadRequestError si la descripción está vacía", async () => {
       const dto = {
         nombre: "Monitor",
         descripcion: "   ",
@@ -73,11 +73,11 @@ describe("ProductoService (Pruebas Unitarias con Mock Repository)", () => {
         stock: 5
       };
 
-      expect(() => service.crearProducto(dto)).toThrow(BadRequestError);
-      expect(() => service.crearProducto(dto)).toThrow(/descripción/);
+      await expect(service.crearProducto(dto)).rejects.toThrow(BadRequestError);
+      await expect(service.crearProducto(dto)).rejects.toThrow(/descripción/);
     });
 
-    it("debe lanzar BadRequestError si el precio es negativo", () => {
+    it("debe lanzar BadRequestError si el precio es negativo", async () => {
       const dto = {
         nombre: "Auriculares",
         descripcion: "Cancelación de ruido",
@@ -85,11 +85,11 @@ describe("ProductoService (Pruebas Unitarias con Mock Repository)", () => {
         stock: 5
       };
 
-      expect(() => service.crearProducto(dto)).toThrow(BadRequestError);
-      expect(() => service.crearProducto(dto)).toThrow(/precio/);
+      await expect(service.crearProducto(dto)).rejects.toThrow(BadRequestError);
+      await expect(service.crearProducto(dto)).rejects.toThrow(/precio/);
     });
 
-    it("debe lanzar BadRequestError si el stock es negativo o decimal", () => {
+    it("debe lanzar BadRequestError si el stock es negativo o decimal", async () => {
       const dto = {
         nombre: "Cable USB",
         descripcion: "USB-C a USB-C",
@@ -97,51 +97,51 @@ describe("ProductoService (Pruebas Unitarias con Mock Repository)", () => {
         stock: 2.5
       };
 
-      expect(() => service.crearProducto(dto)).toThrow(BadRequestError);
-      expect(() => service.crearProducto(dto)).toThrow(/stock/);
+      await expect(service.crearProducto(dto)).rejects.toThrow(BadRequestError);
+      await expect(service.crearProducto(dto)).rejects.toThrow(/stock/);
     });
   });
 
   describe("obtenerTodos", () => {
-    it("debe retornar todos los productos", () => {
-      const lista = service.obtenerTodos();
+    it("debe retornar todos los productos", async () => {
+      const lista = await service.obtenerTodos();
 
       expect(lista).toHaveLength(2);
       expect(lista[0].nombre).toBe("Notebook Lenovo");
       expect(lista[1].nombre).toBe("Mouse Inalámbrico");
     });
 
-    it("debe retornar lista vacía si no hay productos", () => {
+    it("debe retornar lista vacía si no hay productos", async () => {
       mockRepo.reset();
-      const lista = service.obtenerTodos();
+      const lista = await service.obtenerTodos();
 
       expect(lista).toEqual([]);
     });
   });
 
   describe("obtenerPorId", () => {
-    it("debe retornar el producto cuando existe el ID", () => {
-      const producto = service.obtenerPorId(1);
+    it("debe retornar el producto cuando existe el ID", async () => {
+      const producto = await service.obtenerPorId(1);
 
       expect(producto).toBeDefined();
       expect(producto.id).toBe(1);
       expect(producto.nombre).toBe("Notebook Lenovo");
     });
 
-    it("debe lanzar NotFoundError cuando el ID no existe", () => {
-      expect(() => service.obtenerPorId(888)).toThrow(NotFoundError);
-      expect(() => service.obtenerPorId(888)).toThrow(/no encontrado/);
+    it("debe lanzar NotFoundError cuando el ID no existe", async () => {
+      await expect(service.obtenerPorId(888)).rejects.toThrow(NotFoundError);
+      await expect(service.obtenerPorId(888)).rejects.toThrow(/no encontrado/);
     });
 
-    it("debe lanzar BadRequestError si el ID es inválido", () => {
-      expect(() => service.obtenerPorId(0)).toThrow(BadRequestError);
-      expect(() => service.obtenerPorId(-3)).toThrow(BadRequestError);
+    it("debe lanzar BadRequestError si el ID es inválido", async () => {
+      await expect(service.obtenerPorId(0)).rejects.toThrow(BadRequestError);
+      await expect(service.obtenerPorId(-3)).rejects.toThrow(BadRequestError);
     });
   });
 
   describe("actualizarProducto", () => {
-    it("debe actualizar los datos correctamente", () => {
-      const actualizado = service.actualizarProducto(1, {
+    it("debe actualizar los datos correctamente", async () => {
+      const actualizado = await service.actualizarProducto(1, {
         precio: 800.0,
         stock: 12
       });
@@ -151,30 +151,31 @@ describe("ProductoService (Pruebas Unitarias con Mock Repository)", () => {
       expect(actualizado.nombre).toBe("Notebook Lenovo");
     });
 
-    it("debe lanzar NotFoundError si el producto no existe", () => {
-      expect(() =>
+    it("debe lanzar NotFoundError si el producto no existe", async () => {
+      await expect(
         service.actualizarProducto(999, { nombre: "Inexistente" })
-      ).toThrow(NotFoundError);
+      ).rejects.toThrow(NotFoundError);
     });
 
-    it("debe lanzar BadRequestError si el precio actualizado es negativo", () => {
-      expect(() =>
+    it("debe lanzar BadRequestError si el precio actualizado es negativo", async () => {
+      await expect(
         service.actualizarProducto(1, { precio: -20 })
-      ).toThrow(BadRequestError);
+      ).rejects.toThrow(BadRequestError);
     });
   });
 
   describe("eliminarProducto", () => {
-    it("debe eliminar el producto correctamente", () => {
-      const resultado = service.eliminarProducto(1);
+    it("debe eliminar el producto correctamente", async () => {
+      const resultado = await service.eliminarProducto(1);
 
       expect(resultado).toBe(true);
-      expect(() => service.obtenerPorId(1)).toThrow(NotFoundError);
-      expect(service.obtenerTodos()).toHaveLength(1);
+      await expect(service.obtenerPorId(1)).rejects.toThrow(NotFoundError);
+      const todos = await service.obtenerTodos();
+      expect(todos).toHaveLength(1);
     });
 
-    it("debe lanzar NotFoundError al intentar eliminar producto inexistente", () => {
-      expect(() => service.eliminarProducto(999)).toThrow(NotFoundError);
+    it("debe lanzar NotFoundError al intentar eliminar producto inexistente", async () => {
+      await expect(service.eliminarProducto(999)).rejects.toThrow(NotFoundError);
     });
   });
 });

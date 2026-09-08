@@ -28,3 +28,9 @@ export class ConflictError extends AppError {
     super(message, 409);
   }
 }
+
+export class InsufficientStockError extends AppError {
+  constructor(message: string = "Stock insuficiente para completar la operación") {
+    super(message, 400);
+  }
+}

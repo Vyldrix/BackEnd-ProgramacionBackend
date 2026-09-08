@@ -10,7 +10,7 @@ export class ProductoSQLiteRepository implements IProductoRepository {
     this.db = db ?? getDatabase();
   }
 
-  public crear(producto: Producto): Producto {
+  public async crear(producto: Producto): Promise<Producto> {
     const stmt = this.db.prepare(`
       INSERT INTO productos (nombre, descripcion, precio, stock, creadoEn)
       VALUES (?, ?, ?, ?, ?)
@@ -33,7 +33,7 @@ export class ProductoSQLiteRepository implements IProductoRepository {
     });
   }
 
-  public obtenerTodos(): Producto[] {
+  public async obtenerTodos(): Promise<Producto[]> {
     const stmt = this.db.prepare(`
       SELECT id, nombre, descripcion, precio, stock, creadoEn FROM productos ORDER BY id ASC
     `);
@@ -59,7 +59,7 @@ export class ProductoSQLiteRepository implements IProductoRepository {
     );
   }
 
-  public obtenerPorId(id: number): Producto | null {
+  public async obtenerPorId(id: number): Promise<Producto | null> {
     const stmt = this.db.prepare(`
       SELECT id, nombre, descripcion, precio, stock, creadoEn FROM productos WHERE id = ?
     `);
@@ -86,11 +86,11 @@ export class ProductoSQLiteRepository implements IProductoRepository {
     });
   }
 
-  public actualizar(
+  public async actualizar(
     id: number,
     datos: Partial<Omit<Producto, "id" | "creadoEn">>
-  ): Producto | null {
-    const existente = this.obtenerPorId(id);
+  ): Promise<Producto | null> {
+    const existente = await this.obtenerPorId(id);
     if (!existente) return null;
 
     const nombreActualizado = datos.nombre ?? existente.nombre;
@@ -121,7 +121,7 @@ export class ProductoSQLiteRepository implements IProductoRepository {
     });
   }
 
-  public eliminar(id: number): boolean {
+  public async eliminar(id: number): Promise<boolean> {
     const stmt = this.db.prepare(`DELETE FROM productos WHERE id = ?`);
     const resultado = stmt.run(id);
     return Number(resultado.changes) > 0;

@@ -10,7 +10,7 @@ export class UsuarioSQLiteRepository implements IUsuarioRepository {
     this.db = db ?? getDatabase();
   }
 
-  public crear(usuario: Usuario): Usuario {
+  public async crear(usuario: Usuario): Promise<Usuario> {
     const stmt = this.db.prepare(`
       INSERT INTO usuarios (nombre, email, edad, creadoEn)
       VALUES (?, ?, ?, ?)
@@ -31,7 +31,7 @@ export class UsuarioSQLiteRepository implements IUsuarioRepository {
     });
   }
 
-  public obtenerTodos(): Usuario[] {
+  public async obtenerTodos(): Promise<Usuario[]> {
     const stmt = this.db.prepare(`
       SELECT id, nombre, email, edad, creadoEn FROM usuarios ORDER BY id ASC
     `);
@@ -55,7 +55,7 @@ export class UsuarioSQLiteRepository implements IUsuarioRepository {
     );
   }
 
-  public obtenerPorId(id: number): Usuario | null {
+  public async obtenerPorId(id: number): Promise<Usuario | null> {
     const stmt = this.db.prepare(`
       SELECT id, nombre, email, edad, creadoEn FROM usuarios WHERE id = ?
     `);
@@ -80,7 +80,7 @@ export class UsuarioSQLiteRepository implements IUsuarioRepository {
     });
   }
 
-  public obtenerPorEmail(email: string): Usuario | null {
+  public async obtenerPorEmail(email: string): Promise<Usuario | null> {
     const stmt = this.db.prepare(`
       SELECT id, nombre, email, edad, creadoEn FROM usuarios WHERE email = ?
     `);
@@ -105,11 +105,11 @@ export class UsuarioSQLiteRepository implements IUsuarioRepository {
     });
   }
 
-  public actualizar(
+  public async actualizar(
     id: number,
     datos: Partial<Omit<Usuario, "id" | "creadoEn">>
-  ): Usuario | null {
-    const existente = this.obtenerPorId(id);
+  ): Promise<Usuario | null> {
+    const existente = await this.obtenerPorId(id);
     if (!existente) return null;
 
     const nombreActualizado = datos.nombre ?? existente.nombre;
@@ -132,7 +132,7 @@ export class UsuarioSQLiteRepository implements IUsuarioRepository {
     });
   }
 
-  public eliminar(id: number): boolean {
+  public async eliminar(id: number): Promise<boolean> {
     const stmt = this.db.prepare(`DELETE FROM usuarios WHERE id = ?`);
     const resultado = stmt.run(id);
     return Number(resultado.changes) > 0;

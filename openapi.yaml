@@ -1,0 +1,214 @@
+openapi: 3.2.0
+info:
+  title: API de Comercio y Checkout de Pedidos - Programación Backend
+  version: 1.0.0
+  description: Especificación OpenAPI 3.2.0 para la gestión de usuarios, catálogo de productos y procesamiento transaccional de pedidos con PostgreSQL y Prisma ORM.
+
+servers:
+  - url: http://localhost:3000
+    description: Servidor de Desarrollo Local
+
+tags:
+  - name: Pedidos
+    description: Operaciones para crear y consultar pedidos de compra
+  - name: Usuarios
+    description: Gestión CRUD de usuarios
+  - name: Productos
+    description: Gestión CRUD de catálogo de productos
+
+paths:
+  /api/pedidos:
+    post:
+      tags:
+        - Pedidos
+      summary: Procesar y crear un nuevo pedido de compra (Checkout)
+      description: Invoca el flujo transaccional ACID de checkout. Valida existencia de usuario, descuenta inventario de productos de forma atómica y genera el pedido y sus detalles. En caso de stock insuficiente o información incompleta, revierte todos los cambios.
+      operationId: crearPedido
+      requestBody:
+        required: true
+        description: Datos de entrada (DTO) requeridos para procesar el pedido
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearPedidoDTO'
+            examples:
+              pedidoEstandar:
+                summary: Ejemplo de pedido estándar
+                value:
+                  usuarioId: 1
+                  productosComprados:
+                    - productoId: 1
+                      cantidad: 2
+                    - productoId: 2
+                      cantidad: 1
+      responses:
+        '201':
+          description: Pedido creado y procesado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PedidoCreadoResponseDTO'
+              examples:
+                exito:
+                  summary: Respuesta exitosa de compra confirmada
+                  value:
+                    estado: ok
+                    mensaje: Pedido procesado y creado exitosamente
+                    datos:
+                      pedidoId: 10
+                      usuarioId: 1
+                      total: 120.0
+                      estado: CONFIRMADO
+                      detalles:
+                        - productoId: 1
+                          nombreProducto: Mouse Gamer
+                          cantidad: 2
+                          precioUnitario: 50.0
+                          subtotal: 100.0
+                        - productoId: 2
+                          nombreProducto: Pad Mouse XL
+                          cantidad: 1
+                          precioUnitario: 20.0
+                          subtotal: 20.0
+                      creadoEn: '2026-09-08T21:18:24.123Z'
+        '400':
+          description: 'Bad Request: Información incompleta o stock insuficiente en inventario'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+              examples:
+                stockInsuficiente:
+                  summary: Falta de stock
+                  value:
+                    estado: error
+                    mensaje: Stock insuficiente para el producto 'Mouse Gamer'. Stock disponible: 1, solicitado: 5
+                informacionIncompleta:
+                  summary: Información incompleta
+                  value:
+                    estado: error
+                    mensaje: "Información incompleta: el campo 'usuarioId' es obligatorio"
+        '422':
+          description: 'Unprocessable Entity: Datos inválidos semánticamente (cantidades menores o iguales a cero)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+              examples:
+                cantidadInvalida:
+                  summary: Cantidad inválida
+                  value:
+                    estado: error
+                    mensaje: La cantidad solicitada debe ser un número entero mayor a 0
+        '404':
+          description: 'Not Found: El usuario o producto especificado no existe'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseDTO'
+
+components:
+  schemas:
+    ProductoCompradoDTO:
+      type: object
+      description: DTO que representa un ítem comprado dentro del pedido
+      required:
+        - productoId
+        - cantidad
+      properties:
+        productoId:
+          type: integer
+          description: Identificador único del producto en el catálogo
+          example: 1
+        cantidad:
+          type: integer
+          description: Cantidad de unidades solicitadas
+          minimum: 1
+          example: 2
+
+    CrearPedidoDTO:
+      type: object
+      description: DTO de entrada con los datos para procesar el pedido
+      required:
+        - usuarioId
+        - productosComprados
+      properties:
+        usuarioId:
+          type: integer
+          description: ID del usuario comprador
+          example: 1
+        productosComprados:
+          type: array
+          description: Lista de productos y cantidades a comprar
+          items:
+            $ref: '#/components/schemas/ProductoCompradoDTO'
+
+    DetalleCheckoutResponseDTO:
+      type: object
+      description: Detalle consolidado de un producto dentro del pedido procesado
+      properties:
+        productoId:
+          type: integer
+          example: 1
+        nombreProducto:
+          type: string
+          example: Mouse Gamer
+        cantidad:
+          type: integer
+          example: 2
+        precioUnitario:
+          type: number
+          format: float
+          example: 50.0
+        subtotal:
+          type: number
+          format: float
+          example: 100.0
+
+    PedidoResponseDTO:
+      type: object
+      description: Representación del pedido finalizado
+      properties:
+        pedidoId:
+          type: integer
+          example: 10
+        usuarioId:
+          type: integer
+          example: 1
+        total:
+          type: number
+          format: float
+          example: 120.0
+        estado:
+          type: string
+          example: CONFIRMADO
+        detalles:
+          type: array
+          items:
+            $ref: '#/components/schemas/DetalleCheckoutResponseDTO'
+        creadoEn:
+          type: string
+          format: date-time
+          example: '2026-09-08T21:18:24.123Z'
+
+    PedidoCreadoResponseDTO:
+      type: object
+      properties:
+        estado:
+          type: string
+          example: ok
+        mensaje:
+          type: string
+          example: Pedido procesado y creado exitosamente
+        datos:
+          $ref: '#/components/schemas/PedidoResponseDTO'
+
+    ErrorResponseDTO:
+      type: object
+      properties:
+        estado:
+          type: string
+          example: error
+        mensaje:
+          type: string
+          example: Descripción del error ocurrido

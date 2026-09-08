@@ -12,7 +12,7 @@ export class UsuarioMockRepository implements IUsuarioRepository {
     }
   }
 
-  public crear(usuario: Usuario): Usuario {
+  public async crear(usuario: Usuario): Promise<Usuario> {
     const nuevoUsuario = new Usuario({
       id: usuario.id && usuario.id > 0 ? usuario.id : this.currentId++,
       nombre: usuario.nombre,
@@ -24,24 +24,24 @@ export class UsuarioMockRepository implements IUsuarioRepository {
     return nuevoUsuario;
   }
 
-  public obtenerTodos(): Usuario[] {
+  public async obtenerTodos(): Promise<Usuario[]> {
     return [...this.usuarios];
   }
 
-  public obtenerPorId(id: number): Usuario | null {
+  public async obtenerPorId(id: number): Promise<Usuario | null> {
     const usuario = this.usuarios.find((u) => u.id === id);
     return usuario ? new Usuario({ ...usuario }) : null;
   }
 
-  public obtenerPorEmail(email: string): Usuario | null {
+  public async obtenerPorEmail(email: string): Promise<Usuario | null> {
     const usuario = this.usuarios.find((u) => u.email.toLowerCase() === email.toLowerCase());
     return usuario ? new Usuario({ ...usuario }) : null;
   }
 
-  public actualizar(
+  public async actualizar(
     id: number,
     datos: Partial<Omit<Usuario, "id" | "creadoEn">>
-  ): Usuario | null {
+  ): Promise<Usuario | null> {
     const index = this.usuarios.findIndex((u) => u.id === id);
     if (index === -1) return null;
 
@@ -58,7 +58,7 @@ export class UsuarioMockRepository implements IUsuarioRepository {
     return actualizado;
   }
 
-  public eliminar(id: number): boolean {
+  public async eliminar(id: number): Promise<boolean> {
     const index = this.usuarios.findIndex((u) => u.id === id);
     if (index === -1) return false;
     this.usuarios.splice(index, 1);

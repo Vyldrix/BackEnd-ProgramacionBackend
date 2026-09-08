@@ -4,5 +4,8 @@ export default defineConfig({
   test: {
     exclude: ["**/node_modules/**", "**/dist/**"],
     globals: true,
-  },
+    env: {
+      DB_DRIVER: "sqlite"
+    }
+  }
 });
