@@ -57,7 +57,7 @@ El objetivo de la actividad consistió en la creación, prueba y verificación d
 
 ---
 
-# 📌 Ejercicio N°2 - Reestructuración por Capas, SQLite, CRUD, Mocks y Gherkin
+# Ejercicio N°2 - Reestructuración por Capas, SQLite, CRUD, Mocks y Gherkin
 
 En esta segunda etapa, se evolucionó la aplicación implementando una **Arquitectura por Capas** estricta según el Punto 7, incorporando dos nuevas entidades de dominio, base de datos persistente en **SQLite**, pruebas unitarias con datos **Mock** y pruebas **BDD con Gherkin**.
 
@@ -246,3 +246,317 @@ La suite de pruebas contiene **68 tests** automatizados con cobertura completa:
 <img width="701" height="400" alt="writeshar" src="https://github.com/user-attachments/assets/de32c056-4f08-4c07-baaa-7600c1af14ee" />
 
 ---
+
+# Ejercicio N°3 - PostgreSQL, Prisma ORM, Checkout Transaccional (ACID) y OpenAPI / Swagger UI
+
+En esta tercera etapa del proyecto, se evolucionó la arquitectura de persistencia reemplazando el almacenamiento local por el motor de base de datos relacional **PostgreSQL**, gestionado de forma orientada a objetos mediante **Prisma ORM**. Se modelaron las relaciones de negocio Uno a Muchos (1:N), se implementó un flujo de **Checkout Transaccional** con cumplimiento estricto de las propiedades **ACID** (con validación de stock y soporte de **Rollback** automático), se completó la capa del controlador con el endpoint `POST /api/pedidos`, y se documentó la API declarativamente bajo el estándar **OpenAPI 3.2.0** con interfaz interactiva **Swagger UI**.
+
+---
+
+## 🗄️ 1. Configuración de PostgreSQL y Gestión de Entorno
+
+- **Variables de Entorno Seguras**: Gestión integral de credenciales en archivo `.env` (`DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, `DB_NAME`), componiendo la cadena de conexión estándar para Prisma:
+  ```env
+  DATABASE_URL="postgresql://postgres:postre.sql@localhost:5432/ejercicio_backend?schema=public"
+  ```
+- **Plantilla para Nuevos Entornos**: Archivo `.env.example` actualizado con la estructura de variables requeridas para desplegar el proyecto.
+- **Entorno Local con Docker**: Archivo `docker-compose.yml` para desplegar un contenedor PostgreSQL 16 listo para desarrollo con un único comando:
+  ```bash
+  docker compose up -d
+  ```
+- **Seguridad en Git**: Archivo `.gitignore` fortalecido para excluir credenciales `.env*`, copias de respaldo de editores (`*.bak`, `*~`), cachés de TypeScript (`*.tsbuildinfo`) y de Vitest (`.vitest/`).
+
+---
+
+## 📐 2. Modelado de Datos y Relaciones 1:N (Prisma ORM)
+
+Se definieron los modelos en `prisma/schema.prisma` mapeados a tablas relacionales en PostgreSQL:
+
+- **`Usuario`** (`usuarios`): Clave primaria `@id @default(autoincrement())`, `email` único, relación 1:N con `Pedido`.
+- **`Producto`** (`productos`): Clave primaria, atributos de `precio` (`Float`) y `stock` (`Int`), relación 1:N con `DetallePedido`.
+- **`Pedido`** (`pedidos`): Clave primaria, clave foránea `usuarioId` (`ON DELETE CASCADE`), total calculado, estado (`PENDIENTE` / `CONFIRMADO`), relación 1:N con `DetallePedido`.
+- **`DetallePedido`** (`detalles_pedidos`): Clave primaria, claves foráneas `pedidoId` (`ON DELETE CASCADE`) y `productoId` (`ON DELETE RESTRICT`), atributos `cantidad`, `precioUnitario` y `subtotal`.
+
+```mermaid
+erDiagram
+    USUARIO ||--o{ PEDIDO : "1 : N (realiza)"
+    PEDIDO ||--|{ DETALLE_PEDIDO : "1 : N (contiene)"
+    PRODUCTO ||--o{ DETALLE_PEDIDO : "1 : N (incluido en)"
+
+    USUARIO {
+        int id PK
+        string nombre
+        string email UK
+        int edad
+        datetime creadoEn
+    }
+
+    PRODUCTO {
+        int id PK
+        string nombre
+        string descripcion
+        float precio
+        int stock
+        datetime creadoEn
+    }
+
+    PEDIDO {
+        int id PK
+        int usuarioId FK
+        float total
+        string estado
+        datetime creadoEn
+    }
+
+    DETALLE_PEDIDO {
+        int id PK
+        int pedidoId FK
+        int productoId FK
+        int cantidad
+        float precioUnitario
+        float subtotal
+    }
+```
+
+### Migraciones Aplicadas en PostgreSQL
+Se crearon y versionaron las migraciones SQL a través del CLI de Prisma:
+```bash
+npx prisma migrate dev --name init_modelos_relacionales
+```
+
+---
+
+## 💉 3. Refactorización de Repositorios con Inyección de Dependencias
+
+Se desacopló la capa de acceso a datos (`src/repositories/`), inyectando el cliente `PrismaClient` a través del constructor e interactuando con la base de datos mediante métodos orientados a objetos:
+
+- **`UsuarioRepository`**: Implementa `create`, `findMany`, `findUnique`, `update` y `delete`.
+- **`ProductoRepository`**: Implementa `create`, `findMany`, `findUnique`, `update` y `delete`.
+- **`PedidoRepository`**: Implementa `create`, `findMany` (con carga eagerly de detalles), `findUnique` y `update`.
+- **`DetallePedidoRepository`**: Implementa `create`, `findMany`, `findUnique` y `delete`.
+- **Inyección Limpia**: Cada repositorio expone `constructor(private readonly prisma: PrismaClient = defaultPrisma)`.
+
+---
+
+## 💳 4. Flujo Transaccional de Checkout (Propiedades ACID)
+
+En `src/services/pedido.service.ts` se implementó el método `procesarCheckout` encapsulado dentro de una transacción interactiva con `prisma.$transaction`:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Cliente as Cliente HTTP
+    participant Service as PedidoService
+    participant Tx as prisma.$transaction
+    participant DB as PostgreSQL
+
+    Cliente->>Service: POST /api/pedidos { usuarioId, productosComprados }
+    Service->>Tx: Iniciar Transacción ACID
+
+    Tx->>DB: Validar existencia de Usuario
+    Tx->>DB: Crear Pedido inicial (estado: PENDIENTE, total: 0)
+
+    loop Por cada producto comprado
+        Tx->>DB: Consultar stock actual
+        alt Stock insuficiente (stock - cantidad < 0)
+            Tx-->>Service: Lanzar InsufficientStockError
+            Note over Tx,DB: ROLLBACK Automático en PostgreSQL (sin cambios)
+            Service-->>Cliente: 400 Bad Request ("Stock insuficiente...")
+        else Stock suficiente
+            Tx->>DB: Restar inventario (stock = stock - cantidad)
+            Tx->>DB: Crear registro DetallePedido (subtotal = cantidad * precio)
+        end
+    end
+
+    Tx->>DB: Actualizar Pedido (total final y estado CONFIRMADO)
+    Note over Tx,DB: COMMIT de la Transacción
+    Service-->>Cliente: 201 Created (pedidoId, total, CONFIRMADO, detalles)
+```
+
+- **Validación Crítica de Inventario**: Si el stock restante de cualquier producto es menor a cero, se dispara un `InsufficientStockError`, forzando el **ROLLBACK** total en PostgreSQL.
+- **Atomicidad y Consistencia**: No se crean pedidos huérfanos ni se descuenta inventario parcial en caso de error.
+- **Confirmación (COMMIT)**: Al validar todos los ítems satisfactoriamente, se actualiza el total, se confirma el pedido y se consolidan los cambios.
+
+---
+
+## 🌐 5. Controlador y Endpoints de Pedidos
+
+Se implementó `PedidoController` y se expuso la ruta en el router de Express:
+
+| Método | Endpoint | Descripción | Códigos HTTP |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/pedidos` | Procesa el checkout de compras de un usuario | `201 Created`, `400 Bad Request`, `422 Unprocessable` |
+| `GET` | `/api/pedidos` | Lista todos los pedidos con sus detalles y productos | `200 OK` |
+| `GET` | `/api/pedidos/:id` | Consulta un pedido por su ID | `200 OK`, `404 Not Found` |
+
+### Ejemplo de Petición (`POST /api/pedidos`):
+```json
+{
+  "usuarioId": 1,
+  "productosComprados": [
+    { "productoId": 1, "cantidad": 2 },
+    { "productoId": 2, "cantidad": 1 }
+  ]
+}
+```
+
+### Respuestas Tipadas:
+- **`201 Created`**: Devuelve el pedido confirmado, total y desglose de productos.
+- **`400 Bad Request`**: Si la información está incompleta (falta `usuarioId` o `productosComprados`) o si no hay stock disponible.
+
+---
+
+## 📖 6. Documentación con OpenAPI 3.2.0 y Swagger UI
+
+Se generó el contrato declarativo de la API bajo la especificación **OpenAPI 3.2.0** (`src/docs/openapi.json` y `openapi.yaml`) y se integró **Swagger UI** como middleware en Express:
+
+- **Swagger UI Interactivo**: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
+- **Redirección Amigable**: [http://localhost:3000/docs](http://localhost:3000/docs)
+- **Especificación en JSON**: [http://localhost:3000/api/docs.json](http://localhost:3000/api/docs.json)
+
+Permite visualizar la documentación interactiva y realizar pruebas manuales directamente desde el navegador web mediante la funcionalidad **"Try it out"**.
+
+---
+
+## 🧪 7. Pruebas Automatizadas (85 Tests)
+
+La suite de pruebas se amplió a **85 tests** pasando al 100%:
+
+1. **Pruebas de Transacciones ACID (`tests/integration/checkout.transaction.test.ts`)**:
+   - Escenario exitoso con confirmación y persistencia de pedido y detalles.
+   - Escenario crítico con reversión total (**ROLLBACK**) ante stock insuficiente.
+   - Verificación de respuestas HTTP `201 Created` y `400 Bad Request`.
+2. **Pruebas de Repositorios Prisma (`tests/integration/prisma.repositories.test.ts`)**:
+   - Operaciones CRUD completas contra PostgreSQL usando métodos orientados a objetos.
+3. **Pruebas de Documentación Swagger (`tests/integration/swagger.docs.test.ts`)**:
+   - Validación de disponibilidad de Swagger UI y del esquema OpenAPI.
+4. **Pruebas Heredadas de Ejercicios Anteriores**:
+   - 32 pruebas unitarias de servicios con Mocks.
+   - 21 pruebas de integración SQLite.
+   - 10 escenarios BDD con sintaxis Gherkin.
+   - 5 pruebas de endpoints base (Ejercicio 1).
+
+---
+
+## 📊 Comandos de Ejecución y Testing (Actualizado)
+
+| Comando | Descripción |
+| :--- | :--- |
+| `npm test` | Ejecuta la **suite completa** de pruebas (85 tests). |
+| `npm run prisma:generate` | Genera el cliente tipado de Prisma ORM. |
+| `npm run prisma:migrate` | Aplica migraciones pendientes a la base de datos PostgreSQL. |
+| `npm run prisma:push` | Sincroniza el esquema de Prisma directamente con la base de datos. |
+| `npm run prisma:studio` | Abre la interfaz gráfica interactiva de Prisma Studio. |
+| `npm run test:unit` | Ejecuta las pruebas unitarias con repositorios Mock. |
+| `npm run test:integration` | Ejecuta las pruebas de integración contra PostgreSQL y SQLite. |
+| `npm run test:gherkin` | Ejecuta las pruebas BDD con Gherkin. |
+| `npm run dev` | Inicia el servidor en modo desarrollo (`http://localhost:3000`). |
+
+---
+
+## 📁 Estructura del Proyecto (Ejercicio N°3)
+
+```text
+.
+├── docker-compose.yml                 # Orquestación de contenedor PostgreSQL 16
+├── openapi.yaml                       # Especificación OpenAPI 3.2.0 en formato YAML
+├── prisma/
+│   ├── migrations/                    # Historial de migraciones relacionales SQL
+│   └── schema.prisma                  # Definición de modelos, tipos y relaciones 1:N
+├── src/
+│   ├── app.ts                         # Configuración central de Express, middlewares y Swagger UI
+│   ├── config/
+│   │   ├── database.ts                # Conexión SQLite (heredada)
+│   │   └── prisma.ts                  # Singleton de PrismaClient y conexión a PostgreSQL
+│   ├── controllers/                   # Controladores HTTP
+│   │   ├── legacy.controller.ts
+│   │   ├── pedido.controller.ts       # Procesamiento de checkout y consulta de pedidos
+│   │   ├── producto.controller.ts
+│   │   └── usuario.controller.ts
+│   ├── docs/
+│   │   └── openapi.json               # Contrato declarativo OpenAPI 3.2.0 para Swagger
+│   ├── dtos/                          # Objetos de Transferencia de Datos
+│   │   ├── pedido.dto.ts
+│   │   ├── producto.dto.ts
+│   │   └── usuario.dto.ts
+│   ├── entities/                      # Entidades del Dominio
+│   │   ├── detalle-pedido.entity.ts
+│   │   ├── pedido.entity.ts
+│   │   ├── producto.entity.ts
+│   │   └── usuario.entity.ts
+│   ├── middlewares/                   # Comportamientos transversales
+│   │   ├── error.middleware.ts
+│   │   ├── logger.middleware.ts
+│   │   └── notfound.middleware.ts
+│   ├── repositories/                  # Capa de persistencia
+│   │   ├── detalle-pedido.repository.ts
+│   │   ├── index.ts                   # Exportación centralizada de repositorios
+│   │   ├── pedido.repository.ts
+│   │   ├── producto.repository.ts
+│   │   ├── usuario.repository.ts
+│   │   ├── interfaces/
+│   │   │   ├── detalle-pedido.repository.interface.ts
+│   │   │   ├── pedido.repository.interface.ts
+│   │   │   ├── producto.repository.interface.ts
+│   │   │   └── usuario.repository.interface.ts
+│   │   ├── mock/                      # Repositorios en memoria para pruebas unitarias
+│   │   ├── prisma/                    # Implementaciones especializadas de Prisma
+│   │   └── sqlite/                    # Persistencia en SQLite
+│   ├── routes/                        # Enrutadores Express
+│   │   ├── index.ts
+│   │   ├── legacy.router.ts
+│   │   ├── pedido.router.ts
+│   │   ├── producto.router.ts
+│   │   └── usuario.router.ts
+│   └── services/                      # Reglas de negocio y transacciones
+│       ├── errors/
+│       │   └── app.errors.ts          # Errores de dominio (NotFound, InsufficientStock, etc.)
+│       ├── pedido.service.ts          # Checkout transaccional con prisma.$transaction (ACID)
+│       ├── producto.service.ts
+│       └── usuario.service.ts
+├── tests/
+│   ├── features/                      # Pruebas BDD Gherkin
+│   ├── integration/                   # Pruebas de integración
+│   │   ├── checkout.transaction.test.ts # Pruebas de transacción ACID, commit y rollback
+│   │   ├── prisma.repositories.test.ts  # CRUD de repositorios con cliente Prisma
+│   │   ├── producto.api.test.ts
+│   │   ├── swagger.docs.test.ts       # Verificación de Swagger UI y OpenAPI
+│   │   └── usuario.api.test.ts
+│   ├── unit/                          # Pruebas unitarias con Mocks
+│   └── testendpoints.test.ts          # Pruebas de rutas base
+├── .env.example                       # Plantilla de variables de entorno (PostgreSQL + Prisma)
+├── .gitignore                         # Exclusiones de Git actualizadas
+├── package.json                       # Scripts y dependencias
+├── server.ts                          # Entrada principal y conexión a PostgreSQL
+├── tsconfig.json                      # Configuración TypeScript
+├── vitest.config.ts                   # Configuración del ejecutor Vitest
+└── README.md                          # Documentación del proyecto
+```
+
+---
+
+## 📸 Capturas de Pruebas (Ejercicio N°3)
+
+> Espacio reservado para adjuntar las capturas de pantalla de la ejecución de pruebas y verificación en Swagger UI para el Ejercicio N°3.
+
+### 1. Ejecución de la Suite Completa de Pruebas (`npm test`) - 85 Tests Pasados
+
+<!-- Adjunta aquí la captura de la terminal corriendo npm test -->
+
+_(Adjuntar captura aquí)_
+
+---
+
+### 2. Documentación Interactiva en Swagger UI (`http://localhost:3000/api/docs`)
+
+<!-- Adjunta aquí la captura de pantalla de Swagger UI en el navegador -->
+
+_(Adjuntar captura aquí)_
+
+---
+
+### 3. Prueba del Endpoint POST /api/pedidos en Swagger UI
+
+<!-- Adjunta aquí la captura probando POST /api/pedidos en Swagger UI -->
+
+_(Adjuntar captura aquí)_
